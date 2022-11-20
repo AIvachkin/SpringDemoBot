@@ -1,18 +1,27 @@
 package pro.sky.SpringDemoBot.service;
 
+import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import pro.sky.SpringDemoBot.config.BotConfig;
+import pro.sky.SpringDemoBot.model.User;
+import pro.sky.SpringDemoBot.model.UserRepository;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+
 
 @Slf4j
 @Component // позволит автоматически создать экземпляр спрингу
@@ -20,6 +29,11 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     //    добавляем все зависимости
     final BotConfig config;
+
+//    инджектим репозиторий
+
+    @Autowired
+    private UserRepository userRepository;
 
     static final String HELP_TEXT = "This bot is created to demonstrate Spring capabilities. \n\n" +
             "You can execute commands from the main menu on the left or by typing a command:\n\n" +
@@ -77,6 +91,10 @@ public class TelegramBot extends TelegramLongPollingBot {
 
             switch (messageText) {
                 case "/start":
+
+//                    привязываем вызов /start ко времени регистрации
+                    registerUser(update.getMessage());
+
                     startCommandReceived(chatId, update.getMessage().getChat().getFirstName());
                     break;
 
@@ -93,9 +111,33 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     }
 
+    private void registerUser(Message msg) {
+//        проверка на существование пользователя в базе (чтобы не перезаписывать время регистрации при каждом вызове start)
+        if (userRepository.findById(msg.getChatId()).isEmpty()) {
+//            определяем временные переменные
+            var chatId = msg.getChatId();
+            var chat = msg.getChat();
+
+            User user = new User();
+
+            user.setChatId(chatId);
+            user.setFirstName(chat.getFirstName());
+            user.setLastName(chat.getLastName());
+            user.setUserName(chat.getUserName());
+            user.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
+
+            userRepository.save(user);
+            log.info("user saved: " + user);
+        }
+    }
+
     private void startCommandReceived(long chatId, String name) {
 
-        String answer = "Hi, " + name + ", nice to meet you!";
+//        добавляем в ответ смайлы
+        String answer = EmojiParser.parseToUnicode("Hi, " + name + ", nice to meet you!" + " :blush:");
+
+
+//        String answer = "Hi, " + name + ", nice to meet you!";
         log.info("Replied to user " + name);
 
         sendMessage(chatId, answer);
@@ -109,6 +151,38 @@ public class TelegramBot extends TelegramLongPollingBot {
         // для присваивания chatId исходящему сообщению используется String
         message.setChatId(String.valueOf(chatId));
         message.setText(textToSend);
+
+//        размечаем клавиатуру
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+//        создаем список из рядов кнопок
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+//        создаем сам ряд
+        KeyboardRow row = new KeyboardRow();
+
+        row.add("weather");
+        row.add("get random joke");
+
+//        порядок добавления рядов имеет значение: первый - верхний
+        keyboardRows.add(row);
+
+//        второй ряд
+        row = new KeyboardRow();
+        row.add("register");
+        row.add("check my data");
+        row.add("delete my data");
+
+        keyboardRows.add(row);
+
+        keyboardMarkup.setKeyboard(keyboardRows);
+
+//        привязываем созданную клавиатуру к сообщению
+        message.setReplyMarkup(keyboardMarkup);
+
+//        т.к. мы эту клавиатуру определяем в методе sendMessage, она будет показываться постоянно
+//        чтобы для каждого сообщения определять свою клавиатуру, лучше блок этот вынести в отдельный метод,
+//        создавать ее там, и в sendMessage передавать готовый объект типа ReplyKeyboardMarkup
+
+
 
         try {
             execute(message);
