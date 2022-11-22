@@ -7,11 +7,14 @@ import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageText;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.meta.api.objects.commands.BotCommand;
 import org.telegram.telegrambots.meta.api.objects.commands.scope.BotCommandScopeDefault;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import pro.sky.SpringDemoBot.config.BotConfig;
@@ -102,13 +105,91 @@ public class TelegramBot extends TelegramLongPollingBot {
                     sendMessage(chatId, HELP_TEXT);
                     break;
 
+                case "/register":
+                    register(chatId);
+                    break;
+
                 // если пользователем не введены поддерживаемые ботом команды
                 default:
                     sendMessage(chatId, "Sorry, command was not recognized");
 
             }
+//            проверяем наличие не текста, а id кнопки, который нужно обработать
+        } else if (update.hasCallbackQuery()) {
+//            получаем id
+            String callbackData = update.getCallbackQuery().getData();
+//            у каждого сообщения есть id, чтобы мы могли менять конкретное сообщение
+            long messageId = update.getCallbackQuery().getMessage().getMessageId();
+            long chatId = update.getCallbackQuery().getMessage().getChatId();
+//            проверяем, какую из кнопок нажал пользователь
+            if (callbackData.equals("YES_BUTTON")) {
+                String text = "You pressed YES button";
+// с помощью данного класса меняем входящее сообщение, если знаем message id
+                EditMessageText message = new EditMessageText();
+                message.setChatId(chatId);
+                message.setText(text);
+                message.setMessageId((int) messageId);
+
+                try {
+                    execute(message);
+                } catch (TelegramApiException e) {
+                    log.error("Error occurred: " + e.getMessage());
+                }
+
+            } else if (callbackData.equals("NO_BUTTON")) {
+                String text = "You pressed NO button";
+                EditMessageText message = new EditMessageText();
+                message.setChatId(chatId);
+                message.setText(text);
+                message.setMessageId((int) messageId);
+
+                try {
+                    execute(message);
+                } catch (TelegramApiException e) {
+                    log.error("Error occurred: " + e.getMessage());
+                }
+            }
         }
 
+    }
+
+    private void register(long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(chatId);
+        message.setText("Do you really want to register?");
+
+//        Класс для создания больших кнопок
+        InlineKeyboardMarkup markupInLine = new InlineKeyboardMarkup();
+//        создаем список списков, в котором мы будем хранить кнопки
+        List<List<InlineKeyboardButton>> rowsInLine = new ArrayList<>();
+//        один ряд. Можно несколько
+        List<InlineKeyboardButton> rowInLine = new ArrayList<>();
+//        создаем кнопку
+        var yesButton = new InlineKeyboardButton();
+
+//        добавляем текст
+        yesButton.setText("Yes");
+//        идентификатор, позволяющий боту понять, какая кнопка была нажата. Лучше эти ID сделать константами, использовать тут конст
+        yesButton.setCallbackData("YES_BUTTON");
+
+        var noButton = new InlineKeyboardButton();
+
+        noButton.setText("No");
+        noButton.setCallbackData("NO_BUTTON");
+
+        rowInLine.add(yesButton);
+        rowInLine.add(noButton);
+
+        rowsInLine.add(rowInLine);
+        markupInLine.setKeyboard(rowsInLine);
+        message.setReplyMarkup(markupInLine);
+
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            log.error("Error occurred: " + e.getMessage());
+        }
     }
 
     private void registerUser(Message msg) {
@@ -181,7 +262,6 @@ public class TelegramBot extends TelegramLongPollingBot {
 //        т.к. мы эту клавиатуру определяем в методе sendMessage, она будет показываться постоянно
 //        чтобы для каждого сообщения определять свою клавиатуру, лучше блок этот вынести в отдельный метод,
 //        создавать ее там, и в sendMessage передавать готовый объект типа ReplyKeyboardMarkup
-
 
 
         try {
