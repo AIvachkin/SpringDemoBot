@@ -20,9 +20,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.Keyboard
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import pro.sky.SpringDemoBot.config.BotConfig;
 import pro.sky.SpringDemoBot.model.Ads;
-import pro.sky.SpringDemoBot.model.AdsRepository;
+import pro.sky.SpringDemoBot.repository.AdsRepository;
 import pro.sky.SpringDemoBot.model.User;
-import pro.sky.SpringDemoBot.model.UserRepository;
+import pro.sky.SpringDemoBot.repository.UserRepository;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
