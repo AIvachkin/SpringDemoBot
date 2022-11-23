@@ -3,6 +3,7 @@ package pro.sky.SpringDemoBot.service;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
@@ -18,6 +19,8 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKe
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardRow;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import pro.sky.SpringDemoBot.config.BotConfig;
+import pro.sky.SpringDemoBot.model.Ads;
+import pro.sky.SpringDemoBot.model.AdsRepository;
 import pro.sky.SpringDemoBot.model.User;
 import pro.sky.SpringDemoBot.model.UserRepository;
 
@@ -37,6 +40,9 @@ public class TelegramBot extends TelegramLongPollingBot {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private AdsRepository adsRepository;
 
     static final String HELP_TEXT = "This bot is created to demonstrate Spring capabilities. \n\n" +
             "You can execute commands from the main menu on the left or by typing a command:\n\n" +
@@ -277,7 +283,7 @@ public class TelegramBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            log.error(ERROR_TEXT+ e.getMessage());
+            log.error(ERROR_TEXT + e.getMessage());
         }
     }
 
@@ -290,4 +296,19 @@ public class TelegramBot extends TelegramLongPollingBot {
         executeMessage(message);
     }
 
+    //    Метод, который будет автоматически запускаться
+    @Scheduled(cron = "${cron.scheduler}")
+    // Параметры слева направо: сек-мин-часы-дата-месяц-день недели. Здесь отправка каждую минуту в 0 секунд
+    private void sendAds() {
+
+        var ads = adsRepository.findAll();
+        var users = userRepository.findAll();
+
+        for (Ads ad : ads) {
+            for (User user : users) {
+                prepareAndSendMessage(user.getChatId(), ad.getAd());
+            }
+        }
+
+    }
 }
