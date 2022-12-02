@@ -3,7 +3,7 @@ package pro.sky.SpringDemoBot.service;
 import io.restassured.RestAssured;
 import org.junit.jupiter.api.Test;
 
-import static net.serenitybdd.rest.RestRequests.given;
+import static io.restassured.RestAssured.given;
 
 
 class TelegramBotTest {
