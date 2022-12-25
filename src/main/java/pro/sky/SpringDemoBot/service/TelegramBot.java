@@ -3,7 +3,6 @@ package pro.sky.SpringDemoBot.service;
 import com.vdurmont.emoji.EmojiParser;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.commands.SetMyCommands;
@@ -205,6 +204,7 @@ public class TelegramBot extends TelegramLongPollingBot {
             user.setUserName(chat.getUserName());
             user.setRegisteredAt(new Timestamp(System.currentTimeMillis()));
 
+
             userRepository.save(user);
             log.info("user saved: " + user);
         }
@@ -297,7 +297,7 @@ public class TelegramBot extends TelegramLongPollingBot {
     }
 
     //    Метод, который будет автоматически запускаться
-    @Scheduled(cron = "${cron.scheduler}")
+//    @Scheduled(cron = "${cron.scheduler}")
     // Параметры слева направо: сек-мин-часы-дата-месяц-день недели. Здесь отправка каждую минуту в 0 секунд
     private void sendAds() {
 

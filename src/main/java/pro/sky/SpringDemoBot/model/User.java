@@ -16,6 +16,8 @@ public class User {
     private String userName;
     private Timestamp registeredAt;
 
+
+
     public Long getChatId() {
         return chatId;
     }
